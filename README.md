@@ -48,7 +48,7 @@ gu install native-image
 
 You're all set, ready to kick some ass !
 
-## First try: Micronaut
+## First test: Micronaut
 Micronaut was the first framework I was introduced to, it was natural for me to try this one first.
 I simply followed the ["getting started" guide](https://guides.micronaut.io/creating-your-first-micronaut-app/guide/index.html)
 
@@ -179,6 +179,104 @@ curl localhost:8080/hello
 ```
 > Hello World
 
-I am glad it works, but a bit disapointed it does not work with Java11. Still some way to go.
+I am glad it works, but a bit disappointed it does not work with Java11. Still some way to go.
 
-## Second try: Quarkus
+## Second test: Quarkus
+
+Go on to this page to have the ["getting starded"](https://quarkus.io/guides/getting-started). 
+
+Clearly, I appreciated a lot using Quarkus for this simple use case. Really easy to setup.
+
+### Install the proper version of GraalVM
+Quarkus seems to limit the usage of GraalVM to some specific version. If you want to build and execute the native image, you need to install `GraalVM 19.2.1`
+```
+sdk install java 19.2.1-grl
+gu install native-image
+java -version
+```
+> openjdk version "1.8.0_232"<br/>
+  OpenJDK Runtime Environment (build 1.8.0_232-20191009173705.graal.jdk8u-src-tar-gz-b07)<br/>
+  OpenJDK 64-Bit GraalVM CE 19.2.1 (build 25.232-b07-jvmci-19.2-b03, mixed mode)<br/>
+
+
+For the rest of the commands, I assume you are in the `./quarkus` folder.
+
+### Build a the JAR
+To build the jar, do this
+```
+./mvnw install
+java -jar target/getting-started-1.0-SNAPSHOT-runner.jar
+```
+> 2020-01-23 19:25:17,469 INFO  [io.quarkus] (main) getting-started 1.0-SNAPSHOT (running on Quarkus 1.1.1.Final) started in 0.610s. Listening on: http://0.0.0.0:8080<br/>
+  2020-01-23 19:25:17,476 INFO  [io.quarkus] (main) Profile prod activated.<br/> 
+  2020-01-23 19:25:17,476 INFO  [io.quarkus] (main) Installed features: [cdi, resteasy]<br/>
+
+Let's see if this work:
+```
+curl localhost:8080/hello
+```
+> hello
+
+That's great.
+
+### Native image
+In this short quick-start, what is great is that many things are already included into maven. To build the native image, just do:
+```
+./mvnw package -Pnative
+```
+> [INFO] [io.quarkus.deployment.QuarkusAugmentor] Quarkus augmentation completed in 50932ms<br/>
+  [INFO] ------------------------------------------------------------------------<br/>
+  [INFO] BUILD SUCCESS<br/>
+  [INFO] ------------------------------------------------------------------------<br/>
+  [INFO] Total time: 01:47 min<br/>
+  [INFO] Finished at: 2020-01-23T19:09:25+01:00<br/>
+  [INFO] ------------------------------------------------------------------------<br/>
+
+Let's try it out.
+```
+./target/getting-started-1.0-SNAPSHOT-runner
+```
+> 2020-01-23 19:32:02,660 INFO  [io.quarkus] (main) getting-started 1.0-SNAPSHOT (running on Quarkus 1.1.1.Final) started in 0.013s. Listening on: http://0.0.0.0:8080<br/>
+  2020-01-23 19:32:02,660 INFO  [io.quarkus] (main) Profile prod activated.<br/> 
+  2020-01-23 19:32:02,660 INFO  [io.quarkus] (main) Installed features: [cdi, resteasy]<br/>
+
+Even more WOOOOOOW !! **13ms** to start... Really impressive. Those native images get my attentions now !
+
+Does it work ? of course !
+``` 
+curl localhost:8080
+```
+> hello
+
+## Time for a debrief
+
+I compared those 2 in a table
+
+|                           | Micronaut                                                              | Quarkus                                           |
+|---------------------------|------------------------------------------------------------------------|---------------------------------------------------|
+| Maximum GraalVM supported | 19.3.0.r8-grl                                                          | 19.2.1-grl                                        |
+| Java 11                   | Seems possible, but still not working                                  | Not even mentioned                                |
+| Java 8                    | Working                                                                | Working                                           |
+| FAT Jar suffix            | all                                                                    | runner                                            |
+| Dependencies manager      | gradle                                                                 | maven                                             |
+| Usage                     | Not so easy. Need more manual actions to build and have a native image | Very easy ! All works with and from maven         |
+| Starting JAR              | Very fast: ~1.5s                                                       | Very fast: ~1.3s                                  |
+| Starting native image     | Extremly fast : ~34ms                                                  | Extremly fast : ~15ms                             |
+| Tests                     | Tests against controller                                               | Test against controller both jar and native image |
+| Skeleton creation         | CLI                                                                    | Website
+
+After discovering those 2 frameworks through a quick getting started, I must say I have a preference
+for Quarkus. It seems faster, smaller, works well with Maven, and you have a 
+[website to create an app skeleton](https://code.quarkus.io)
+
+What I think is the more impressive for me is that how shirt is the uptime when building a native image.
+You need more time at build, but you gain so much more for the runtime...
+
+|                                    | JAR  | Native |
+|------------------------------------|------|--------|
+| Global build time                  | 7.7s | 107s   |
+| Uptime                             | 1.3s | 0.012s |
+| # of starts in 60s                 | 46   | 5000   |
+| # of starts build included in 120s | 86   | 1083   |
+
+Have fun ! Any comments are appreciated !
